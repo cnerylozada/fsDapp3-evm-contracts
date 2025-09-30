@@ -1,0 +1,4 @@
+export enum CHAINID {
+  SEPOLIA = 11155111,
+  HARDHAT = 31337,
+}

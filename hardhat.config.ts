@@ -1,7 +1,15 @@
 import type { HardhatUserConfig } from "hardhat/config";
 
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
-import { configVariable } from "hardhat/config";
+import { CHAINID } from "./utils/utils.js";
+import dotenv from "dotenv";
+dotenv.config();
+
+const ALCHEMY_ETHEREUM_SEPOLIA = process.env.ALCHEMY_ETHEREUM_SEPOLIA!;
+
+const MAIN_DEPLOYER_PRIVATE_KEY = process.env.MAIN_DEPLOYER_PRIVATE_KEY!;
+
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY!;
 
 const config: HardhatUserConfig = {
   plugins: [hardhatToolboxViemPlugin],
@@ -33,8 +41,14 @@ const config: HardhatUserConfig = {
     sepolia: {
       type: "http",
       chainType: "l1",
-      url: configVariable("SEPOLIA_RPC_URL"),
-      accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
+      url: ALCHEMY_ETHEREUM_SEPOLIA,
+      accounts: [MAIN_DEPLOYER_PRIVATE_KEY],
+      chainId: CHAINID.SEPOLIA,
+    },
+  },
+  verify: {
+    etherscan: {
+      apiKey: ETHERSCAN_API_KEY,
     },
   },
 };
