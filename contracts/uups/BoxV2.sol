@@ -6,6 +6,8 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
+    uint s_magicNumber;
+
     constructor() {
         _disableInitializers();
     }
@@ -13,6 +15,10 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function initialize(address _owner) public initializer {
         __Ownable_init(_owner);
         __UUPSUpgradeable_init();
+    }
+
+    function setMagicNumber(uint _number) external {
+        s_magicNumber = _number + 100;
     }
 
     function _authorizeUpgrade(

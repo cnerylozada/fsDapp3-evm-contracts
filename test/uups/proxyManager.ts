@@ -34,4 +34,16 @@ describe("ProxyManager", async function () {
       assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
     });
   });
+
+  describe("setMagicNumber", () => {
+    it("should set a new magicNumber", async () => {
+      const { proxyBoxV1Contract } = await networkHelpers.loadFixture(
+        deployCounterModuleFixture
+      );
+      const magicNumber = BigInt(1993);
+      await proxyBoxV1Contract.write.setMagicNumber([magicNumber]);
+
+      assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
+    });
+  });
 });
