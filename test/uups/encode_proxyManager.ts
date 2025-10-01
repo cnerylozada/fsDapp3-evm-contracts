@@ -1,36 +1,28 @@
 import { network } from "hardhat";
+import EncodeProxyManagerModule from "../../ignition/modules/uups/encode_proxyManager.js";
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import ProxyManagerModule from "../../ignition/modules/uups/proxyManager.js";
-import { getAddress } from "viem";
 
 describe("ProxyManager", async function () {
   const { networkHelpers } = await network.connect();
-  const { viem } = await network.connect();
 
   async function deployCounterModuleFixture() {
-    const [mainUser] = await viem.getWalletClients();
-
     const { ignition } = await network.connect();
     const { proxyContract, proxyBoxV1Contract } = await ignition.deploy(
-      ProxyManagerModule
+      EncodeProxyManagerModule
     );
-
-    return { mainUser, proxyContract, proxyBoxV1Contract };
+    return { proxyContract, proxyBoxV1Contract };
   }
 
   describe("deployment impl BoxV1", () => {
     it("should initialize params", async function () {
-      const { proxyContract, proxyBoxV1Contract, mainUser } =
+      const { proxyContract, proxyBoxV1Contract } =
         await networkHelpers.loadFixture(deployCounterModuleFixture);
       assert.equal(proxyContract.address, proxyBoxV1Contract.address);
 
-      assert.equal(
-        getAddress(mainUser.account.address),
-        getAddress(await proxyBoxV1Contract.read.owner())
-      );
-
-      const magicNumber = BigInt(2000);
+      const magicNumber = BigInt(1993);
+      const owner = "0xDE645d7DC8f33DbC92dd970d408A9f9cF50eCD1B";
+      assert.equal(owner, await proxyBoxV1Contract.read.owner());
       assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
     });
   });
