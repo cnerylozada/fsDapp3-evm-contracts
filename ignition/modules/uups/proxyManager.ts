@@ -13,7 +13,17 @@ const ProxyManagerModule = buildModule("ProxyManagerModule", (m) => {
   });
   m.call(proxyBoxV1Contract, "initialize", [_owner, _magicNumber]);
 
-  return { proxyContract, proxyBoxV1Contract };
+  const boxV2Contract = m.contract("BoxV2", []);
+  const proxyBoxV2Contract = m.contractAt("BoxV2", proxyContract, {
+    id: "proxyBoxV2Contract",
+  });
+
+  return {
+    proxyContract,
+    proxyBoxV1Contract,
+    boxV2Contract,
+    proxyBoxV2Contract,
+  };
 });
 
 export default ProxyManagerModule;

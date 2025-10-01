@@ -17,6 +17,10 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         __UUPSUpgradeable_init();
     }
 
+    function getMagicNumber() external view returns (uint) {
+        return s_magicNumber;
+    }
+
     function setMagicNumber(uint _number) external {
         s_magicNumber = _number + 100;
     }
@@ -24,4 +28,8 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
+
+    function getVersion() external pure returns (string memory) {
+        return "2.0.0";
+    }
 }

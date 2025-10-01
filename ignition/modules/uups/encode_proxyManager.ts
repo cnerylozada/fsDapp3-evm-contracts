@@ -5,7 +5,7 @@ const EncodeProxyManagerModule = buildModule(
   (m) => {
     const boxV1Contract = m.contract("BoxV1", []);
 
-    // abi.encodeWithSignature("initialize(uint256,address)", 1993, owner)
+    // abi.encodeWithSignature("initialize(uint256,address)", owner, 1993)
     const encodeInitParams =
       "0xcd6dc687000000000000000000000000de645d7dc8f33dbc92dd970d408a9f9cf50ecd1b00000000000000000000000000000000000000000000000000000000000007c9";
 

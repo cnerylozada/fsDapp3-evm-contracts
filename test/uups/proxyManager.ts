@@ -7,16 +7,25 @@ import { getAddress } from "viem";
 describe("ProxyManager", async function () {
   const { networkHelpers } = await network.connect();
   const { viem } = await network.connect();
+  const { ignition } = await network.connect();
 
   async function deployCounterModuleFixture() {
     const [mainUser] = await viem.getWalletClients();
 
-    const { ignition } = await network.connect();
-    const { proxyContract, proxyBoxV1Contract } = await ignition.deploy(
-      ProxyManagerModule
-    );
+    const {
+      proxyContract,
+      proxyBoxV1Contract,
+      proxyBoxV2Contract,
+      boxV2Contract,
+    } = await ignition.deploy(ProxyManagerModule);
 
-    return { mainUser, proxyContract, proxyBoxV1Contract };
+    return {
+      mainUser,
+      proxyContract,
+      proxyBoxV1Contract,
+      proxyBoxV2Contract,
+      boxV2Contract,
+    };
   }
 
   describe("deployment impl BoxV1", () => {
@@ -40,10 +49,35 @@ describe("ProxyManager", async function () {
       const { proxyBoxV1Contract } = await networkHelpers.loadFixture(
         deployCounterModuleFixture
       );
-      const magicNumber = BigInt(1993);
+
+      const magicNumber = BigInt(2025);
       await proxyBoxV1Contract.write.setMagicNumber([magicNumber]);
 
       assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
+    });
+  });
+
+  describe("upgrade", () => {
+    it("should migrate to new logic", async () => {
+      const { proxyBoxV1Contract, boxV2Contract, proxyBoxV2Contract } =
+        await networkHelpers.loadFixture(deployCounterModuleFixture);
+
+      await proxyBoxV1Contract.write.upgradeToAndCall([
+        boxV2Contract.address,
+        "0x",
+      ]);
+      assert.equal("2.0.0", await proxyBoxV2Contract.read.getVersion());
+
+      const oldMagicNumber = await proxyBoxV2Contract.read.getMagicNumber();
+      console.log(`oldMagicNumber`, oldMagicNumber);
+
+      const magicNumber = BigInt(2000);
+      await proxyBoxV1Contract.write.setMagicNumber([magicNumber]);
+
+      assert.equal(
+        magicNumber + BigInt(100),
+        await proxyBoxV2Contract.read.getMagicNumber()
+      );
     });
   });
 });
