@@ -1,17 +1,17 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import ProxyManagerModule from "./proxyManager.js";
 
 const UpgradeModule = buildModule("UpgradeModule", (m) => {
-  const { proxyContract, proxyBoxV1Contract } = m.useModule(ProxyManagerModule);
+  const lastProxyContract = "0x8CD4394739dF9205939C2aA109335aaf2571E339";
+  const _proxyContract = m.getParameter("_proxyContract", lastProxyContract);
+
+  const proxyBoxV1Contract = m.contractAt("BoxV1", _proxyContract);
 
   const boxV2Contract = m.contract("BoxV2", []);
   m.call(proxyBoxV1Contract, "upgradeToAndCall", [boxV2Contract, "0x"]);
 
-  const _owner = m.getAccount(0);
-  const proxyBoxV2Contract = m.contractAt("BoxV2", proxyContract, {
+  const proxyBoxV2Contract = m.contractAt("BoxV2", _proxyContract, {
     id: "proxyBoxV2Contract",
   });
-  m.call(proxyBoxV2Contract, "initialize", [_owner]);
 
   return { proxyBoxV2Contract };
 });

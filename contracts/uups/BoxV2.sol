@@ -7,15 +7,16 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 
 contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint s_magicNumber;
+    string s_name;
 
     constructor() {
         _disableInitializers();
     }
 
-    function initialize(address _owner) public initializer {
-        __Ownable_init(_owner);
-        __UUPSUpgradeable_init();
-    }
+    // TODO: initialize new storage variables
+    // function initialize() public initializer {
+    //     __UUPSUpgradeable_init();
+    // }
 
     function getMagicNumber() external view returns (uint) {
         return s_magicNumber;

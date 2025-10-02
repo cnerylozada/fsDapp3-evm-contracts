@@ -13,16 +13,9 @@ const ProxyManagerModule = buildModule("ProxyManagerModule", (m) => {
   });
   m.call(proxyBoxV1Contract, "initialize", [_owner, _magicNumber]);
 
-  const boxV2Contract = m.contract("BoxV2", []);
-  const proxyBoxV2Contract = m.contractAt("BoxV2", proxyContract, {
-    id: "proxyBoxV2Contract",
-  });
-
   return {
     proxyContract,
     proxyBoxV1Contract,
-    boxV2Contract,
-    proxyBoxV2Contract,
   };
 });
 
