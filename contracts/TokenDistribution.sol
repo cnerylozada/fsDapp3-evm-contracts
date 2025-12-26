@@ -13,14 +13,12 @@ contract TokenDistribution {
     }
 
     function claimTokens(
-        address _user,
         uint _claimAmount,
         uint _maxClaimableAmount,
         bytes32[] memory _proof
     ) external {
         address claimer = msg.sender;
         if (
-            _user != msg.sender ||
             (s_userToClaimed[claimer] + _claimAmount > _maxClaimableAmount) ||
             !verify(claimer, _proof)
         ) revert TokenDistribution__InvalidClaim();

@@ -4,7 +4,7 @@ import { Hex, keccak256 } from "viem";
 export const generateTree = () => {
   const claimAllowances = [
     {
-      address: "0xe022385f32c6125823d09a714706d2c46f1ecf65",
+      address: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
       amount: 165404.120988873,
     },
     {
@@ -447,5 +447,5 @@ export const generateTree = () => {
   const leaves = claimAllowances.map((_) => keccak256(_.address as Hex));
   const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
 
-  return tree;
+  return { tree, claimAllowances };
 };
