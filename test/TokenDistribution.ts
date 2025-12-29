@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { Hex, keccak256, parseEther } from "viem";
-import { generateTree } from "../scripts/merkle.js";
+import { CLAIM_ALLOWANCES, generateTree } from "../scripts/merkle.js";
 import TokenDistributionModule from "../ignition/modules/TokenDistribution.js";
 
 describe("TokenDistribution", async () => {
   const { viem, networkHelpers, ignition } = await network.connect();
 
   async function deployTokenDistributionFixture() {
-    const { tree, claimAllowances } = generateTree();
+    const { tree } = generateTree(CLAIM_ALLOWANCES);
     const root = tree.getHexRoot();
 
     const { tokenDistributionContract } = await ignition.deploy(
@@ -26,11 +26,10 @@ describe("TokenDistribution", async () => {
       mainAccount,
       otherAccount,
       tree,
-      claimAllowances,
     };
   }
 
-  describe("verify", async () => {
+  describe("isInWhiteList", async () => {
     it("should find it user is in white-list", async () => {
       const { tokenDistributionContract, tree, mainAccount, otherAccount } =
         await networkHelpers.loadFixture(deployTokenDistributionFixture);
@@ -38,7 +37,7 @@ describe("TokenDistribution", async () => {
       const user = mainAccount.account.address;
       const proof = tree.getHexProof(keccak256(user)) as Hex[];
       assert.equal(
-        await tokenDistributionContract.read.verify([user, proof]),
+        await tokenDistributionContract.read.isInWhiteList([user, proof]),
         true
       );
 
@@ -47,7 +46,7 @@ describe("TokenDistribution", async () => {
         keccak256(invalidUser)
       ) as Hex[];
       assert.equal(
-        await tokenDistributionContract.read.verify([
+        await tokenDistributionContract.read.isInWhiteList([
           invalidUser,
           proofOfInvalidUser,
         ]),
@@ -58,13 +57,8 @@ describe("TokenDistribution", async () => {
 
   describe("claimTokens", async () => {
     it("should fail if it invalid params are passed", async () => {
-      const {
-        tokenDistributionContract,
-        tree,
-        mainAccount,
-        otherAccount,
-        claimAllowances,
-      } = await networkHelpers.loadFixture(deployTokenDistributionFixture);
+      const { tokenDistributionContract, tree, mainAccount, otherAccount } =
+        await networkHelpers.loadFixture(deployTokenDistributionFixture);
 
       const invalidUser = otherAccount.account.address;
       const proofOfInvalidUser = tree.getHexProof(
@@ -82,7 +76,7 @@ describe("TokenDistribution", async () => {
 
       const user = mainAccount.account.address;
       const proof = tree.getHexProof(keccak256(user)) as Hex[];
-      const { amount } = claimAllowances.filter((_) => _.address === user)[0];
+      const { amount } = CLAIM_ALLOWANCES.filter((_) => _.address === user)[0];
       const maxClaimableAmount = parseEther(amount.toString());
 
       await viem.assertions.revertWithCustomError(
@@ -96,17 +90,16 @@ describe("TokenDistribution", async () => {
       );
     });
 
-    it("should ...", async () => {
-      const { tokenDistributionContract, tree, mainAccount, claimAllowances } =
+    it("should track valid claims", async () => {
+      const { tokenDistributionContract, tree, mainAccount } =
         await networkHelpers.loadFixture(deployTokenDistributionFixture);
 
       const user = mainAccount.account.address;
       const proof = tree.getHexProof(keccak256(user)) as Hex[];
-      const { amount } = claimAllowances.filter((_) => _.address === user)[0];
+      const { amount } = CLAIM_ALLOWANCES.filter((_) => _.address === user)[0];
       const maxClaimableAmount = parseEther(amount.toString());
 
-      //   165404.120988873
-      const claimAmount = parseEther("165404");
+      const claimAmount = parseEther("165404.11"); // MAX: 165404.120988873
       await tokenDistributionContract.write.claimTokens([
         claimAmount,
         maxClaimableAmount,
@@ -115,6 +108,16 @@ describe("TokenDistribution", async () => {
       assert.equal(
         await tokenDistributionContract.read.getClaimedByUser([user]),
         claimAmount
+      );
+
+      await viem.assertions.revertWithCustomError(
+        tokenDistributionContract.write.claimTokens([
+          parseEther(`1`),
+          maxClaimableAmount,
+          proof,
+        ]),
+        tokenDistributionContract,
+        "TokenDistribution__InvalidClaim"
       );
     });
   });

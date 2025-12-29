@@ -20,7 +20,7 @@ contract TokenDistribution {
         address claimer = msg.sender;
         if (
             (s_userToClaimed[claimer] + _claimAmount > _maxClaimableAmount) ||
-            !verify(claimer, _proof)
+            !isInWhiteList(claimer, _proof)
         ) revert TokenDistribution__InvalidClaim();
 
         s_userToClaimed[claimer] += _claimAmount;
@@ -30,7 +30,7 @@ contract TokenDistribution {
         return s_userToClaimed[_user];
     }
 
-    function verify(
+    function isInWhiteList(
         address _user,
         bytes32[] memory _proof
     ) public view returns (bool) {
