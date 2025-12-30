@@ -14,7 +14,6 @@ contract BoxV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
 
     function initialize(address _owner, uint _magicNumber) public initializer {
         __Ownable_init(_owner);
-        __UUPSUpgradeable_init();
         s_magicNumber = _magicNumber;
     }
 
@@ -22,15 +21,13 @@ contract BoxV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return s_magicNumber;
     }
 
-    function setMagicNumber(uint _number) external {
-        s_magicNumber = _number;
+    function setMagicNumber(uint _magicNumber) external {
+        s_magicNumber = _magicNumber;
     }
-
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
 
     function getVersion() external pure returns (string memory) {
         return "1.0.0";
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override {}
 }

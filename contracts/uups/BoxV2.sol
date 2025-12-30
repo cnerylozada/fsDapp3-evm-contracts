@@ -26,11 +26,11 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         s_magicNumber = _number + 100;
     }
 
-    function _authorizeUpgrade(
-        address newImplementation
-    ) internal override onlyOwner {}
-
     function getVersion() external pure returns (string memory) {
         return "2.0.0";
     }
+
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 }
