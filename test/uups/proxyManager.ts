@@ -22,7 +22,7 @@ describe("ProxyManager", async function () {
       assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
     });
 
-    it("should should prevent re-initialization and block upgrades from non-owners", async () => {
+    it("should prevent re-initialization and block upgrades from non-owners", async () => {
       const { boxV1Contract, proxyBoxV1Contract, otherAccount } =
         await networkHelpers.loadFixture(deployProxyManagerModuleFixture);
 

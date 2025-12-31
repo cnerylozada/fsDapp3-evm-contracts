@@ -11,6 +11,7 @@ const UpgradeModule = buildModule("UpgradeModule", (m) => {
   const proxyBoxV2Contract = m.contractAt("BoxV2", proxyContract, {
     id: "proxyBoxV2Contract",
   });
+  m.call(proxyBoxV2Contract, "initialize", ["lucciano"]);
   return { proxyBoxV2Contract };
 });
 

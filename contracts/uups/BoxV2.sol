@@ -13,17 +13,20 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
-    // TODO: initialize new storage variables
-    // function initialize() public initializer {
-    //     __UUPSUpgradeable_init();
-    // }
+    function initialize(string memory _name) public reinitializer(2) {
+        s_name = _name;
+    }
 
     function getMagicNumber() external view returns (uint) {
         return s_magicNumber;
     }
 
-    function setMagicNumber(uint _number) external {
-        s_magicNumber = _number + 10;
+    function setMagicNumber(uint _number, uint _incrementer) external {
+        s_magicNumber = _number + _incrementer;
+    }
+
+    function getName() external view returns (string memory) {
+        return s_name;
     }
 
     function getVersion() external pure returns (string memory) {
