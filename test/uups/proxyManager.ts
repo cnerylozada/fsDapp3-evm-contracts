@@ -5,7 +5,7 @@ import { getAddress, zeroAddress } from "viem";
 import { deployProxyManagerModuleFixture } from "./utils.js";
 
 describe("ProxyManager", async function () {
-  const { networkHelpers, viem, ignition } = await network.connect();
+  const { networkHelpers, viem } = await network.connect();
 
   describe("deployment impl BoxV1", () => {
     it("should initialize params", async function () {
@@ -13,6 +13,18 @@ describe("ProxyManager", async function () {
         await networkHelpers.loadFixture(deployProxyManagerModuleFixture);
 
       assert.equal(proxyContract.address, proxyBoxV1Contract.address);
+      assert.equal(
+        await proxyBoxV1Contract.read.owner(),
+        getAddress(mainUser.account.address)
+      );
+
+      const magicNumber = BigInt(9);
+      assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
+    });
+
+    it("should should prevent re-initialization and block upgrades from non-owners", async () => {
+      const { boxV1Contract, proxyBoxV1Contract, otherAccount } =
+        await networkHelpers.loadFixture(deployProxyManagerModuleFixture);
 
       await viem.assertions.revertWithCustomError(
         proxyBoxV1Contract.write.initialize([zeroAddress, BigInt(1)]),
@@ -20,13 +32,19 @@ describe("ProxyManager", async function () {
         "InvalidInitialization"
       );
 
-      assert.equal(
-        getAddress(mainUser.account.address),
-        getAddress(await proxyBoxV1Contract.read.owner())
+      const proxyBoxV1ContractAsOtherAccount = await viem.getContractAt(
+        "BoxV1",
+        proxyBoxV1Contract.address,
+        { client: { wallet: otherAccount } }
       );
-
-      const magicNumber = BigInt(9);
-      assert.equal(magicNumber, await proxyBoxV1Contract.read.getMagicNumber());
+      await viem.assertions.revertWithCustomError(
+        proxyBoxV1ContractAsOtherAccount.write.upgradeToAndCall([
+          boxV1Contract.address,
+          "0x",
+        ]),
+        proxyBoxV1ContractAsOtherAccount,
+        "OwnableUnauthorizedAccount"
+      );
     });
   });
 

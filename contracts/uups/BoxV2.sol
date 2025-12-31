@@ -23,7 +23,7 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     }
 
     function setMagicNumber(uint _number) external {
-        s_magicNumber = _number + 100;
+        s_magicNumber = _number + 10;
     }
 
     function getVersion() external pure returns (string memory) {

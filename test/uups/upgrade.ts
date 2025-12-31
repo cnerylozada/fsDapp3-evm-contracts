@@ -1,28 +1,31 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
+import { deployUpgradeModuleFixture } from "./utils.js";
+import { getAddress } from "viem";
 
 describe("ProxyManager", async () => {
-  const { networkHelpers, viem, ignition } = await network.connect();
+  const { networkHelpers, viem } = await network.connect();
 
-  describe("upgrade", () => {
+  describe("Upgrade from V1 to V2", () => {
     it("should migrate to new logic", async () => {
-      //   const { proxyBoxV1Contract } = await networkHelpers.loadFixture(
-      //     deployProxyManagerModuleFixture
-      //   );
-      //   assert.equal("1.0.0", await proxyBoxV1Contract.read.getVersion());
-      //   const { proxyBoxV2Contract } = await networkHelpers.loadFixture(
-      //     deployUpgradeModuleFixture(proxyBoxV1Contract.address)
-      //   );
-      //   assert.equal("2.0.0", await proxyBoxV2Contract.read.getVersion());
-      //   const oldMagicNumber = await proxyBoxV2Contract.read.getMagicNumber();
-      //   console.log(`oldMagicNumber`, oldMagicNumber);
-      //   const magicNumber = BigInt(1993);
-      //   await proxyBoxV1Contract.write.setMagicNumber([magicNumber]);
-      //   assert.equal(
-      //     magicNumber + BigInt(100),
-      //     await proxyBoxV2Contract.read.getMagicNumber()
-      //   );
+      const { proxyBoxV2Contract, mainUser } = await networkHelpers.loadFixture(
+        deployUpgradeModuleFixture
+      );
+      assert.equal(
+        await proxyBoxV2Contract.read.owner(),
+        getAddress(mainUser.account.address)
+      );
+      assert.equal(await proxyBoxV2Contract.read.getVersion(), "2.0.0");
+
+      assert.equal(await proxyBoxV2Contract.read.getMagicNumber(), BigInt(1));
+
+      const magicNumber = BigInt(1993);
+      await proxyBoxV2Contract.write.setMagicNumber([magicNumber]);
+      assert.equal(
+        await proxyBoxV2Contract.read.getMagicNumber(),
+        magicNumber + BigInt(10)
+      );
     });
   });
 });

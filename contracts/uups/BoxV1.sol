@@ -29,5 +29,7 @@ contract BoxV1 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         return "1.0.0";
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override {}
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal override onlyOwner {}
 }
