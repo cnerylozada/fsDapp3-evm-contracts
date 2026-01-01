@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { Hex, keccak256, parseEther } from "viem";
-import { CLAIM_ALLOWANCES, generateTree } from "../scripts/merkle.js";
-import MerkleAirdropMinterModule from "../ignition/modules/tokenDistribution/MerkleAirdropMinter.js";
+import { CLAIM_ALLOWANCES, generateTree } from "../../scripts/merkle.js";
+import MerkleAirdropMinterModule from "../../ignition/modules/tokenDistribution/MerkleAirdropMinter.js";
 
 describe("TokenDistribution", async () => {
   const { viem, networkHelpers, ignition } = await network.connect();
