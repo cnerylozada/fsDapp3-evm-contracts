@@ -2,8 +2,8 @@
 pragma solidity ^0.8.28;
 import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
-contract TokenDistribution {
-    error TokenDistribution__InvalidClaim();
+contract MerkleAirdropMinter {
+    error MerkleAirdropMinter__InvalidClaim();
 
     bytes32 immutable i_root;
     mapping(address => uint) s_userToClaimed;
@@ -21,7 +21,7 @@ contract TokenDistribution {
         if (
             (s_userToClaimed[claimer] + _claimAmount > _maxClaimableAmount) ||
             !isInWhiteList(claimer, _proof)
-        ) revert TokenDistribution__InvalidClaim();
+        ) revert MerkleAirdropMinter__InvalidClaim();
 
         s_userToClaimed[claimer] += _claimAmount;
     }
