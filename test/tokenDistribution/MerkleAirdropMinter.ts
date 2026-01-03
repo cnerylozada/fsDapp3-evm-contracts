@@ -29,6 +29,19 @@ describe("TokenDistribution", async () => {
     };
   }
 
+  describe("deployment", () => {
+    it("should set a default amount of tokens", async () => {
+      const { merkleAirdropMinterContract } = await networkHelpers.loadFixture(
+        deployTokenDistributionFixture
+      );
+
+      assert.equal(
+        await merkleAirdropMinterContract.read.getTokenBalance(),
+        parseEther("200000")
+      );
+    });
+  });
+
   describe("isInWhiteList", async () => {
     it("should find it user is in white-list", async () => {
       const { merkleAirdropMinterContract, tree, mainAccount, otherAccount } =
