@@ -1,5 +1,5 @@
 import { buildModule } from "@nomicfoundation/hardhat-ignition/modules";
-import { CLAIM_ALLOWANCES, generateTree } from "../../../scripts/merkle.js";
+import { generateTree } from "../../../scripts/merkle.js";
 import MyTokenModule from "./MyToken.js";
 import { parseEther } from "viem";
 
@@ -8,9 +8,11 @@ const MerkleAirdropMinterModule = buildModule(
   (m) => {
     const { myTokenContract } = m.useModule(MyTokenModule);
 
-    const { tree } = generateTree(CLAIM_ALLOWANCES);
+    const defaultAdmin = m.getAccount(0);
+    const { tree } = generateTree();
     const _root = m.getParameter("root", tree.getHexRoot());
     const merkleAirdropMinterContract = m.contract("MerkleAirdropMinter", [
+      defaultAdmin,
       _root,
       myTokenContract,
     ]);
@@ -20,7 +22,7 @@ const MerkleAirdropMinterModule = buildModule(
       parseEther("200000"),
     ]);
 
-    return { merkleAirdropMinterContract };
+    return { merkleAirdropMinterContract, myTokenContract };
   }
 );
 

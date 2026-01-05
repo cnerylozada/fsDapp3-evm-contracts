@@ -1,5 +1,11 @@
 import { MerkleTree } from "merkletreejs";
-import { Hex, keccak256 } from "viem";
+import {
+  encodeAbiParameters,
+  Hex,
+  keccak256,
+  parseEther,
+  parseUnits,
+} from "viem";
 
 export const CLAIM_ALLOWANCES = [
   {
@@ -7,7 +13,7 @@ export const CLAIM_ALLOWANCES = [
     amount: 165404.120988873,
   },
   {
-    address: "0x216BACbE54eBa495688C3fdBC3Dc794DE525702b",
+    address: "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
     amount: 134708.55023119,
   },
   {
@@ -51,7 +57,7 @@ export const CLAIM_ALLOWANCES = [
     amount: 6866.04674010517,
   },
   {
-    address: "0xE8fCd4CD3551BE6963A24Ae5c6cc50825Ec65629 ",
+    address: "0xE8fCd4CD3551BE6963A24Ae5c6cc50825Ec65629",
     amount: 5100.84618829047,
   },
   {
@@ -79,7 +85,7 @@ export const CLAIM_ALLOWANCES = [
     amount: 2679.41521159535,
   },
   {
-    address: "0x9D6FA54A5D0C7E6766E89a55e07CfDA0DC9A8760 ",
+    address: "0x9D6FA54A5D0C7E6766E89a55e07CfDA0DC9A8760",
     amount: 1697.26470329097,
   },
   {
@@ -444,14 +450,40 @@ export const CLAIM_ALLOWANCES = [
   },
 ];
 
-export const generateTree = (
-  claimAllowances: {
-    address: string;
-    amount: number;
-  }[]
-) => {
-  const leaves = claimAllowances.map((_) => keccak256(_.address as Hex));
+export const generateTree = () => {
+  const leaves = CLAIM_ALLOWANCES.map((_) => {
+    const amount = parseUnits(_.amount.toString(), 18);
+    const encodeItem = encodeAbiParameters(
+      [
+        { name: "wallet", type: "address" },
+        { name: "amount", type: "uint256" },
+      ],
+      [_.address as `0x${string}`, amount]
+    );
+    return keccak256(encodeItem);
+  });
   const tree = new MerkleTree(leaves, keccak256, { sortPairs: true });
 
   return { tree };
+};
+
+export const getMerkleClaimData = (wallet: `0x${string}`) => {
+  const { tree } = generateTree();
+
+  const allowance = CLAIM_ALLOWANCES.find((_) => _.address === wallet);
+  const maxClaimableAmount = parseEther(
+    (allowance ? allowance.amount : 0).toString()
+  );
+
+  const hash = keccak256(
+    encodeAbiParameters(
+      [
+        { name: "wallet", type: "address" },
+        { name: "amount", type: "uint256" },
+      ],
+      [wallet, maxClaimableAmount]
+    )
+  );
+
+  return { maxClaimableAmount, proof: tree.getHexProof(hash) as Hex[] };
 };
