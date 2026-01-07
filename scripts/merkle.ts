@@ -18,11 +18,11 @@ export const CLAIM_ALLOWANCES = [
   },
   {
     address: "0xDE645d7DC8f33DbC92dd970d408A9f9cF50eCD1B",
-    amount: 113151.161260967,
+    amount: 11.161260967,
   },
   {
-    address: "0x1031cae6c23ce093decae53a0118754aab3f10fa",
-    amount: 105877.657841091,
+    address: "0x58Dc4256E7E5402cc1A88d9A63c640B1A3959722",
+    amount: 3.657841091,
   },
   {
     address: "0x861ba63eB1564113793a62550CC5095e137b10c2",

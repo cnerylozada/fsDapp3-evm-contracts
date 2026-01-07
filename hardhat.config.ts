@@ -37,6 +37,11 @@ const config: HardhatUserConfig = {
       accounts: [configVariable("MAIN_DEPLOYER_PRIVATE_KEY")],
     },
   },
+  verify: {
+    etherscan: {
+      apiKey: configVariable("ETHERSCAN_API_KEY"),
+    },
+  },
 };
 
 export default config;
