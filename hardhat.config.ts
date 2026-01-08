@@ -30,6 +30,12 @@ const config: HardhatUserConfig = {
       type: "edr-simulated",
       chainType: "op",
     },
+    ethereum: {
+      type: "http",
+      chainType: "l1",
+      url: configVariable("ALCHEMY_ETHEREUM_MAINNET"),
+      accounts: [configVariable("MAIN_DEPLOYER_PRIVATE_KEY")],
+    },
     sepolia: {
       type: "http",
       chainType: "l1",
