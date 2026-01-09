@@ -10,10 +10,10 @@ const MerkleAirdropMinterModule = buildModule(
 
     const defaultAdmin = m.getAccount(0);
     const { tree } = generateTree();
-    const _root = m.getParameter("root", tree.getHexRoot());
+    const root = tree.getHexRoot(); // 0xd1b1c867fa577e0ce34f8b87c9f4672808a5cc8e4e945c84a979d8dcadb1cbde
     const merkleAirdropMinterContract = m.contract("MerkleAirdropMinter", [
       defaultAdmin,
-      _root,
+      root,
       myTokenContract,
     ]);
 

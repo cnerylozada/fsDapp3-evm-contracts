@@ -2,20 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
 import { getAddress, parseEther } from "viem";
-import { generateTree, getMerkleClaimData } from "../../scripts/merkle.js";
+import { getMerkleClaimData } from "../../scripts/merkle.js";
 import MerkleAirdropMinterModule from "../../ignition/modules/tokenDistribution/MerkleAirdropMinter.js";
 
 describe("TokenDistribution", async () => {
   const { viem, networkHelpers, ignition } = await network.connect();
 
   async function deployMerkleAirdropMinterFixture() {
-    const { tree } = generateTree();
-    const root = tree.getHexRoot();
-
     const { merkleAirdropMinterContract, myTokenContract } =
-      await ignition.deploy(MerkleAirdropMinterModule, {
-        parameters: { TokenDistributionModule: { root } },
-      });
+      await ignition.deploy(MerkleAirdropMinterModule);
 
     const [mainAccount, claimerAccount, otherAccount] =
       await viem.getWalletClients();
