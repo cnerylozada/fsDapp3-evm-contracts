@@ -6,9 +6,10 @@ import { getMerkleClaimData } from "../../scripts/merkle.js";
 import MerkleAirdropMinterModule from "../../ignition/modules/tokenDistribution/MerkleAirdropMinter.js";
 
 describe("TokenDistribution", async () => {
-  const { viem, networkHelpers, ignition } = await network.connect();
+  const { viem, networkHelpers, ignition, networkConfig } =
+    await network.connect();
 
-  async function getSignature(
+  async function createSignature(
     verifyingContract: `0x${string}`,
     account: `0x${string}`,
     amount: bigint
@@ -16,7 +17,7 @@ describe("TokenDistribution", async () => {
     const [mainAccount] = await viem.getWalletClients();
 
     const domain = {
-      chainId: 1,
+      chainId: networkConfig.chainId,
       verifyingContract,
       name: "MerkleAirdropMinter",
       version: "1.0.0",
@@ -122,6 +123,12 @@ describe("TokenDistribution", async () => {
           merkleAirdropMinterContract.address,
           { client: { wallet: otherAccount } }
         );
+
+      const signature = await createSignature(
+        merkleAirdropMinterContract.address,
+        mainAccount.account.address,
+        parseEther("1")
+      );
       //     await viem.assertions.revertWithCustomError(
       //       merkleAirdropMinterContractAsOtherAccount.write.claimTokens([
       //         BigInt(1),
