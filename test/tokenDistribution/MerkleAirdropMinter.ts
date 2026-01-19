@@ -12,10 +12,8 @@ describe("TokenDistribution", async () => {
   async function createSignature(
     verifyingContract: `0x${string}`,
     account: `0x${string}`,
-    amount: bigint
+    amount: bigint,
   ) {
-    const [mainAccount] = await viem.getWalletClients();
-
     const domain = {
       chainId: networkConfig.chainId,
       verifyingContract,
@@ -32,28 +30,45 @@ describe("TokenDistribution", async () => {
       account,
       amount,
     };
-    const signature = await mainAccount.signTypedData({
-      domain,
-      types,
-      message: value,
-      primaryType: "AirdropClaim",
-    });
 
-    return signature;
+    const [mainAccount, beneficiaryAccount, otherAccount] =
+      await viem.getWalletClients();
+    const signatures = await Promise.all([
+      mainAccount.signTypedData({
+        domain,
+        types,
+        message: value,
+        primaryType: "AirdropClaim",
+      }),
+      beneficiaryAccount.signTypedData({
+        domain,
+        types,
+        message: value,
+        primaryType: "AirdropClaim",
+      }),
+      otherAccount.signTypedData({
+        domain,
+        types,
+        message: value,
+        primaryType: "AirdropClaim",
+      }),
+    ]);
+
+    return signatures;
   }
 
   async function deployMerkleAirdropMinterFixture() {
     const { merkleAirdropMinterContract, myTokenContract } =
       await ignition.deploy(MerkleAirdropMinterModule);
 
-    const [mainAccount, claimerAccount, otherAccount] =
+    const [mainAccount, beneficiaryAccount, otherAccount] =
       await viem.getWalletClients();
 
     return {
       merkleAirdropMinterContract,
       myTokenContract,
       mainAccount,
-      claimerAccount,
+      beneficiaryAccount,
       otherAccount,
     };
   }
@@ -65,12 +80,12 @@ describe("TokenDistribution", async () => {
 
       assert.equal(
         await merkleAirdropMinterContract.read.owner(),
-        getAddress(mainAccount.account.address)
+        getAddress(mainAccount.account.address),
       );
 
       assert.equal(
         await merkleAirdropMinterContract.read.getTokenBalance(),
-        parseEther("200000")
+        parseEther("200000"),
       );
     });
   });
@@ -82,7 +97,7 @@ describe("TokenDistribution", async () => {
 
       const user = mainAccount.account.address;
       const { maxClaimableAmount, proof } = getMerkleClaimData(
-        mainAccount.account.address
+        mainAccount.account.address,
       );
       assert.equal(
         await merkleAirdropMinterContract.read.isInWhiteList([
@@ -90,7 +105,7 @@ describe("TokenDistribution", async () => {
           maxClaimableAmount,
           proof,
         ]),
-        true
+        true,
       );
 
       const invalidUser = otherAccount.account.address;
@@ -104,127 +119,141 @@ describe("TokenDistribution", async () => {
           maxClaimableAmountOfInvalidUser,
           proofOfInvalidUser,
         ]),
-        false
+        false,
       );
     });
   });
 
   describe("claimTokens", async () => {
-    it("should fail if it invalid params are passed", async () => {
+    it("should fail if invalid params are passed", async () => {
       const { merkleAirdropMinterContract, mainAccount, otherAccount } =
         await networkHelpers.loadFixture(deployMerkleAirdropMinterFixture);
 
-      const { proof: proofOfInvalidUser } = getMerkleClaimData(
-        otherAccount.account.address
-      );
       const merkleAirdropMinterContractAsOtherAccount =
         await viem.getContractAt(
           "MerkleAirdropMinter",
           merkleAirdropMinterContract.address,
-          { client: { wallet: otherAccount } }
+          { client: { wallet: otherAccount } },
         );
-
-      const signature = await createSignature(
+      const signer = otherAccount.account.address;
+      const { proof: proofOfInvalidUser } = getMerkleClaimData(signer);
+      const [, , otherAccountSignature] = await createSignature(
         merkleAirdropMinterContract.address,
-        mainAccount.account.address,
-        parseEther("1")
+        signer,
+        parseEther("1"),
       );
-      //     await viem.assertions.revertWithCustomError(
-      //       merkleAirdropMinterContractAsOtherAccount.write.claimTokens([
-      //         BigInt(1),
-      //         BigInt(10),
-      //         proofOfInvalidUser,
-      //       ]),
-      //       merkleAirdropMinterContractAsOtherAccount,
-      //       "MerkleAirdropMinter__InvalidClaim"
-      //     );
+      await viem.assertions.revertWithCustomError(
+        merkleAirdropMinterContractAsOtherAccount.write.claimTokens([
+          signer,
+          parseEther("1"),
+          BigInt(10),
+          proofOfInvalidUser,
+          otherAccountSignature,
+        ]),
+        merkleAirdropMinterContractAsOtherAccount,
+        "MerkleAirdropMinter__NotInWhiteList",
+      );
 
-      const { proof, maxClaimableAmount } = getMerkleClaimData(
-        mainAccount.account.address
+      const beneficiary = mainAccount.account.address;
+      const { proof, maxClaimableAmount } = getMerkleClaimData(beneficiary);
+      const [mainAccountSignature, ,] = await createSignature(
+        merkleAirdropMinterContract.address,
+        beneficiary,
+        maxClaimableAmount,
       );
+      await viem.assertions.revertWithCustomError(
+        merkleAirdropMinterContract.write.claimTokens([
+          beneficiary,
+          maxClaimableAmount + BigInt(1),
+          maxClaimableAmount,
+          proof,
+          mainAccountSignature,
+        ]),
+        merkleAirdropMinterContract,
+        "MerkleAirdropMinter__InvalidAmountToClaim",
+      );
+    });
+
+    it("should track valid claims", async () => {
+      const {
+        merkleAirdropMinterContract,
+        beneficiaryAccount,
+        myTokenContract,
+      } = await networkHelpers.loadFixture(deployMerkleAirdropMinterFixture);
+
+      const beneficiaryData = {
+        account: beneficiaryAccount.account.address,
+        amount: parseEther("134708.11"), // MAX: 134708.55023119
+      };
+      const { proof, maxClaimableAmount } = getMerkleClaimData(
+        beneficiaryData.account,
+      );
+      const [, signature, _] = await createSignature(
+        merkleAirdropMinterContract.address,
+        beneficiaryData.account,
+        beneficiaryData.amount,
+      );
+      const hash = await merkleAirdropMinterContract.write.claimTokens([
+        beneficiaryData.account,
+        beneficiaryData.amount,
+        maxClaimableAmount,
+        proof,
+        signature,
+      ]);
+
+      const publicClient = await viem.getPublicClient();
+      await publicClient.waitForTransactionReceipt({ hash });
+      const claimTokensEvents =
+        await merkleAirdropMinterContract.getEvents.ClaimTokens();
+
+      assert.equal(claimTokensEvents.length, 1);
+      assert.equal(claimTokensEvents[0].args.amount, beneficiaryData.amount);
+      assert.equal(
+        await merkleAirdropMinterContract.read.getClaimedByUser([
+          beneficiaryData.account,
+        ]),
+        beneficiaryData.amount,
+      );
+
+      assert.equal(
+        await myTokenContract.read.balanceOf([beneficiaryData.account]),
+        beneficiaryData.amount,
+      );
+    });
+
+    it("should fail if contract run out of tokens to transfer", async () => {
+      const {
+        mainAccount,
+        beneficiaryAccount,
+        merkleAirdropMinterContract,
+        myTokenContract,
+      } = await networkHelpers.loadFixture(deployMerkleAirdropMinterFixture);
+
+      const _ = getMerkleClaimData(mainAccount.account.address);
+      // await merkleAirdropMinterContract.write.claimTokens([
+      //   parseEther("100000"),
+      //   _.maxClaimableAmount,
+      //   _.proof,
+      // ]);
+      // const merkleAirdropMinterContractAsClaimerAccount =
+      //   await viem.getContractAt(
+      //     "MerkleAirdropMinter",
+      //     merkleAirdropMinterContract.address,
+      //     { client: { wallet: claimerAccount } },
+      //   );
+      //     const { maxClaimableAmount, proof } = getMerkleClaimData(
+      //       claimerAccount.account.address
+      //     );
       //     await viem.assertions.revertWithCustomError(
-      //       merkleAirdropMinterContract.write.claimTokens([
-      //         maxClaimableAmount + BigInt(1),
+      //       merkleAirdropMinterContractAsClaimerAccount.write.claimTokens([
+      //         parseEther("120000"),
       //         maxClaimableAmount,
       //         proof,
       //       ]),
-      //       merkleAirdropMinterContract,
-      //       "MerkleAirdropMinter__InvalidClaim"
+      //       myTokenContract,
+      //       "ERC20InsufficientBalance"
       //     );
     });
-
-    //   it("should track valid claims", async () => {
-    //     const { merkleAirdropMinterContract, mainAccount } =
-    //       await networkHelpers.loadFixture(deployMerkleAirdropMinterFixture);
-
-    //     const user = mainAccount.account.address;
-    //     const { proof, maxClaimableAmount } = getMerkleClaimData(user);
-    //     const claimAmount = parseEther("165404.11"); // MAX: 165404.120988873
-
-    //     const hash = await merkleAirdropMinterContract.write.claimTokens([
-    //       claimAmount,
-    //       maxClaimableAmount,
-    //       proof,
-    //     ]);
-
-    //     const publicClient = await viem.getPublicClient();
-    //     await publicClient.waitForTransactionReceipt({ hash });
-    //     const claimTokensEvents =
-    //       await merkleAirdropMinterContract.getEvents.ClaimTokens();
-    //     assert.equal(claimTokensEvents.length, 1);
-    //     assert.equal(claimTokensEvents[0].args.amount, claimAmount);
-
-    //     assert.equal(
-    //       await merkleAirdropMinterContract.read.getClaimedByUser([user]),
-    //       claimAmount
-    //     );
-
-    //     await viem.assertions.revertWithCustomError(
-    //       merkleAirdropMinterContract.write.claimTokens([
-    //         parseEther(`1`),
-    //         maxClaimableAmount,
-    //         proof,
-    //       ]),
-    //       merkleAirdropMinterContract,
-    //       "MerkleAirdropMinter__InvalidClaim"
-    //     );
-    //   });
-
-    //   it("should fail if contract run out of tokens to transfer", async () => {
-    //     const {
-    //       mainAccount,
-    //       claimerAccount,
-    //       merkleAirdropMinterContract,
-    //       myTokenContract,
-    //     } = await networkHelpers.loadFixture(deployMerkleAirdropMinterFixture);
-
-    //     const _ = getMerkleClaimData(mainAccount.account.address);
-    //     await merkleAirdropMinterContract.write.claimTokens([
-    //       parseEther("100000"),
-    //       _.maxClaimableAmount,
-    //       _.proof,
-    //     ]);
-
-    //     const merkleAirdropMinterContractAsClaimerAccount =
-    //       await viem.getContractAt(
-    //         "MerkleAirdropMinter",
-    //         merkleAirdropMinterContract.address,
-    //         { client: { wallet: claimerAccount } }
-    //       );
-    //     const { maxClaimableAmount, proof } = getMerkleClaimData(
-    //       claimerAccount.account.address
-    //     );
-
-    //     await viem.assertions.revertWithCustomError(
-    //       merkleAirdropMinterContractAsClaimerAccount.write.claimTokens([
-    //         parseEther("120000"),
-    //         maxClaimableAmount,
-    //         proof,
-    //       ]),
-    //       myTokenContract,
-    //       "ERC20InsufficientBalance"
-    //     );
-    //   });
   });
 
   describe("withdrawTokens", () => {
@@ -240,7 +269,7 @@ describe("TokenDistribution", async () => {
         await viem.getContractAt(
           "MerkleAirdropMinter",
           merkleAirdropMinterContract.address,
-          { client: { wallet: otherAccount } }
+          { client: { wallet: otherAccount } },
         );
       await viem.assertions.revertWithCustomError(
         merkleAirdropMinterContractAsOtherAccount.write.withdrawTokens([
@@ -248,7 +277,7 @@ describe("TokenDistribution", async () => {
           parseEther("1"),
         ]),
         merkleAirdropMinterContractAsOtherAccount,
-        "OwnableUnauthorizedAccount"
+        "OwnableUnauthorizedAccount",
       );
 
       const owner = mainAccount.account.address;

@@ -7,21 +7,24 @@ import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract MerkleAirdropMinter is EIP712, Ownable {
-    error MerkleAirdropMinter__InvalidClaim();
+    error MerkleAirdropMinter__NotInWhiteList();
+    error MerkleAirdropMinter__InvalidAmountToClaim();
+    error MerkleAirdropMinter__InvalidSignature();
     error MerkleAirdropMinter__TransferError();
+
     event ClaimTokens(address indexed user, uint amount);
     event WithdrawToken(address indexed user, uint amount);
 
     bytes32 immutable i_root;
     mapping(address => uint) s_userToClaimed;
     address immutable i_tokenAddress;
-    bytes32 constant MESSAGE_TYPE_HASH =
-        keccak256("AirdropClaim(address account,uint256 amount)");
 
     struct AirdropClaim {
         address account;
         uint256 amount;
     }
+    bytes32 constant MESSAGE_TYPE_HASH =
+        keccak256("AirdropClaim(address account,uint256 amount)");
 
     constructor(
         address _initialOwner,
@@ -33,7 +36,7 @@ contract MerkleAirdropMinter is EIP712, Ownable {
     }
 
     function claimTokens(
-        address _account,
+        address _beneficiary,
         uint _claimAmount,
         uint _maxClaimableAmount,
         bytes32[] calldata _proof,
@@ -41,25 +44,45 @@ contract MerkleAirdropMinter is EIP712, Ownable {
     ) external {
         if (
             _claimAmount == 0 ||
-            !isInWhiteList(_account, _maxClaimableAmount, _proof)
+            !isInWhiteList(_beneficiary, _maxClaimableAmount, _proof)
         ) {
-            revert MerkleAirdropMinter__InvalidClaim();
+            revert MerkleAirdropMinter__NotInWhiteList();
         }
-        if (s_userToClaimed[_account] + _claimAmount > _maxClaimableAmount) {
-            revert MerkleAirdropMinter__InvalidClaim();
+        if (
+            s_userToClaimed[_beneficiary] + _claimAmount > _maxClaimableAmount
+        ) {
+            revert MerkleAirdropMinter__InvalidAmountToClaim();
         }
-        bytes32 digest = getMessageHash(_account, _claimAmount);
-        if (!isValidSignature(digest, _signature, _account)) {
-            revert MerkleAirdropMinter__InvalidClaim();
+        bytes32 digest = getMessageHash(_beneficiary, _claimAmount);
+        if (!isValidSignature(digest, _signature, _beneficiary)) {
+            revert MerkleAirdropMinter__InvalidSignature();
         }
 
-        s_userToClaimed[_account] += _claimAmount;
+        s_userToClaimed[_beneficiary] += _claimAmount;
         IERC20 token = IERC20(i_tokenAddress);
-        bool isSuccess = token.transfer(_account, _claimAmount);
+        bool isSuccess = token.transfer(_beneficiary, _claimAmount);
         if (!isSuccess) {
             revert MerkleAirdropMinter__TransferError();
         }
-        emit ClaimTokens(_account, _claimAmount);
+        emit ClaimTokens(_beneficiary, _claimAmount);
+    }
+
+    function isInWhiteList(
+        address _user,
+        uint _maxClaimableAmount,
+        bytes32[] calldata _proof
+    ) public view returns (bool) {
+        bytes32 leaf = keccak256(abi.encode(_user, _maxClaimableAmount));
+        return MerkleProof.verify(_proof, i_root, leaf);
+    }
+
+    function isValidSignature(
+        bytes32 _digest,
+        bytes calldata _signature,
+        address _signer
+    ) public pure returns (bool) {
+        (address recovered, , ) = ECDSA.tryRecover(_digest, _signature);
+        return recovered == _signer;
     }
 
     function withdrawTokens(address _to, uint _amount) external onlyOwner {
@@ -79,19 +102,10 @@ contract MerkleAirdropMinter is EIP712, Ownable {
         return IERC20(i_tokenAddress).balanceOf(address(this));
     }
 
-    function isInWhiteList(
-        address _user,
-        uint _maxClaimableAmount,
-        bytes32[] calldata _proof
-    ) public view returns (bool) {
-        bytes32 leaf = keccak256(abi.encode(_user, _maxClaimableAmount));
-        return MerkleProof.verify(_proof, i_root, leaf);
-    }
-
     function getMessageHash(
         address _account,
         uint256 _amount
-    ) public view returns (bytes32) {
+    ) internal view returns (bytes32) {
         bytes32 hash = keccak256(
             abi.encode(
                 MESSAGE_TYPE_HASH,
@@ -99,14 +113,5 @@ contract MerkleAirdropMinter is EIP712, Ownable {
             )
         );
         return _hashTypedDataV4(hash);
-    }
-
-    function isValidSignature(
-        bytes32 _digest,
-        bytes calldata _signature,
-        address _signer
-    ) public pure returns (bool) {
-        (address recovered, , ) = ECDSA.tryRecover(_digest, _signature);
-        return recovered == _signer;
     }
 }
