@@ -36,14 +36,6 @@ export const CLAIM_ALLOWANCES = [
     address: "0xaFCeC3b52F31f8418325Dac57810CDc9B1a448EA",
     amount: 23499.1910459254,
   },
-  {
-    address: "0xbe40d897df88ae87b3b87d21756e2662625787d8",
-    amount: 20367.1764394917,
-  },
-  {
-    address: "0x79f1e4798239a5e786d207fb33d91c76c8ab44cc",
-    amount: 11698.2860794724,
-  },
 ];
 
 export const generateTree = () => {
