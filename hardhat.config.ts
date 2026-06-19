@@ -40,7 +40,10 @@ const config: HardhatUserConfig = {
       type: "http",
       chainType: "l1",
       url: configVariable("ALCHEMY_ETHEREUM_SEPOLIA"),
-      accounts: [configVariable("MAIN_DEPLOYER_PRIVATE_KEY")],
+      accounts: [
+        configVariable("MAIN_DEPLOYER_PRIVATE_KEY"),
+        configVariable("SUB_ACCOUNT_PRIVATE_KEY"),
+      ],
     },
   },
   verify: {
