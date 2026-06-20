@@ -6,12 +6,17 @@ const UpgradeModule = buildModule("UpgradeModule", (m) => {
   m.call(proxyBoxV1Contract, "setMagicNumber", [BigInt(1)]);
 
   const boxV2Contract = m.contract("BoxV2", []);
-  m.call(proxyBoxV1Contract, "upgradeToAndCall", [boxV2Contract, "0x"]);
+  const upgradeCall = m.call(proxyBoxV1Contract, "upgradeToAndCall", [
+    boxV2Contract,
+    "0x",
+  ]);
 
   const proxyBoxV2Contract = m.contractAt("BoxV2", proxyContract, {
     id: "proxyBoxV2Contract",
   });
-  m.call(proxyBoxV2Contract, "initialize", ["lucciano"]);
+  m.call(proxyBoxV2Contract, "initialize", ["lucciano"], {
+    after: [upgradeCall],
+  });
   return { proxyBoxV2Contract };
 });
 

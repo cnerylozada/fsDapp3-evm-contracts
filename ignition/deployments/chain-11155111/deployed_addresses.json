@@ -1,4 +1,7 @@
 {
-  "ManagerTokenModule#AccessManagerWrapper": "0xedCfF08F99c7394E3770963e022DC1EA6D76C1e1",
-  "ManagerTokenModule#ManagerToken": "0x27352407FAeb497841E5Acf4A3E8B12078a80F87"
+  "ProxyManagerModule#BoxV1": "0x03Fddf0F7CACa124d88d18cc48E6708F06cC1579",
+  "ProxyManagerModule#ProxyManager": "0xe97AbbFF7962d55dB799F0048A14Ec505d1fa3e4",
+  "ProxyManagerModule#proxyBoxV1Contract": "0xe97AbbFF7962d55dB799F0048A14Ec505d1fa3e4",
+  "UpgradeModule#proxyBoxV2Contract": "0xe97AbbFF7962d55dB799F0048A14Ec505d1fa3e4",
+  "UpgradeModule#BoxV2": "0x932C3Aa96E460a82C7c771ECF3186582dD35A04b"
 }
