@@ -13,7 +13,7 @@ contract BoxV2 is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         _disableInitializers();
     }
 
-    function initialize(string memory _name) public reinitializer(2) {
+    function initialize(string memory _name) public onlyOwner reinitializer(2) {
         s_name = _name;
     }
 
