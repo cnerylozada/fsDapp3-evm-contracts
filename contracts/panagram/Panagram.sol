@@ -40,6 +40,7 @@ contract Panagram is AccessManaged, ERC721, ERC721URIStorage {
 
         bytes32 nullifier = _publicInput[PUBLIC_INPUT_NULLIFIER_INDEX];
         if (s_isNullfierUsed[nullifier]) revert Panagram__NullfierAlreadyUsed();
+        s_isNullfierUsed[nullifier] = true;
 
         if (!i_zkVerifierContract.verify(_proof, _publicInput))
             revert Panagram__InvalidProof();
