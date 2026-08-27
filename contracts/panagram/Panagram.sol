@@ -3,13 +3,7 @@ pragma solidity ^0.8.0;
 import {AccessManaged} from "@openzeppelin/contracts/access/manager/AccessManaged.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {ERC721URIStorage} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-
-interface IVerifier {
-    function verify(
-        bytes calldata _proof,
-        bytes32[] calldata _publicInputs
-    ) external view returns (bool);
-}
+import {IVerifier} from "./IVerifier.sol";
 
 contract Panagram is AccessManaged, ERC721, ERC721URIStorage {
     IVerifier immutable i_zkVerifierContract;
@@ -17,6 +11,8 @@ contract Panagram is AccessManaged, ERC721, ERC721URIStorage {
     uint256 private _nextTokenId;
 
     uint constant PUBLIC_INPUT_CLAIMER_INDEX = 0;
+    uint constant PUBLIC_INPUT_NULLIFIER_INDEX = 3;
+
     string constant EASY_METADATA_URI =
         "https://coral-giant-donkey-508.mypinata.cloud/ipfs/bafkreibv3myd2t7p2dx7exo3wfjsry2swfapum6nvfbqsfj6qjgdjifn6a";
 
@@ -31,10 +27,6 @@ contract Panagram is AccessManaged, ERC721, ERC721URIStorage {
         i_zkVerifierContract = IVerifier(_zkVerifierContract);
     }
 
-    function addressToBytes32(address _user) public view returns (bytes32) {
-        return bytes32(uint256(uint160(_user)));
-    }
-
     function claimReward(
         bytes calldata _proof,
         bytes32[] calldata _publicInput
@@ -46,7 +38,7 @@ contract Panagram is AccessManaged, ERC721, ERC721URIStorage {
             _publicInput[PUBLIC_INPUT_CLAIMER_INDEX]
         ) revert Panagram__ProofNotBoundToClaimer();
 
-        bytes32 nullifier = _publicInput[_publicInput.length - 1];
+        bytes32 nullifier = _publicInput[PUBLIC_INPUT_NULLIFIER_INDEX];
         if (s_isNullfierUsed[nullifier]) revert Panagram__NullfierAlreadyUsed();
 
         if (!i_zkVerifierContract.verify(_proof, _publicInput))
@@ -56,6 +48,10 @@ contract Panagram is AccessManaged, ERC721, ERC721URIStorage {
         _safeMint(claimer, tokenId);
         _setTokenURI(tokenId, EASY_METADATA_URI);
         return tokenId;
+    }
+
+    function addressToBytes32(address _user) public view returns (bytes32) {
+        return bytes32(uint256(uint160(_user)));
     }
 
     function tokenURI(
