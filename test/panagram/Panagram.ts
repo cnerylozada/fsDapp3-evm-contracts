@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { network } from "hardhat";
 import PanagramModule from "../../ignition/modules/panagram/Panagram.js";
-import { claimByMainUser } from "./utils.js";
+import {
+  noirProofMainUser100,
+  noirProofMainUser101,
+  noirProofOtherUser200,
+} from "./utils.js";
+import { getAddress, zeroAddress } from "viem";
 
-const { viem, ignition } = await network.connect();
+const { viem, ignition, networkHelpers } = await network.connect();
 
 describe("Panagram", async function () {
-  const { networkHelpers } = await network.connect();
-
   async function deployPanagramModuleFixture() {
     const [adminUser, mainUser, otherUser] = await viem.getWalletClients();
 
@@ -33,14 +36,17 @@ describe("Panagram", async function () {
       await networkHelpers.loadFixture(deployPanagramModuleFixture);
 
     assert.equal(
-      panagramAccessManagerContract.address,
       await panagramContract.read.authority(),
+      panagramAccessManagerContract.address,
     );
+    assert.equal(await panagramContract.read.name(), "Panagram ZK");
+    assert.equal(await panagramContract.read.symbol(), "PNG_ZK");
   });
 
-  it("should ...", async function () {
-    const { mainUser, panagramContract, otherUser } =
-      await networkHelpers.loadFixture(deployPanagramModuleFixture);
+  it("should mint only for the bound claimer, and only once per nullifier", async function () {
+    const { mainUser, panagramContract } = await networkHelpers.loadFixture(
+      deployPanagramModuleFixture,
+    );
 
     const panagramContractAsMainUser = await viem.getContractAt(
       "Panagram",
@@ -48,9 +54,61 @@ describe("Panagram", async function () {
       { client: { wallet: mainUser } },
     );
 
-    const claimRewardTx = await panagramContractAsMainUser.write.claimReward([
-      claimByMainUser.proof,
-      claimByMainUser.publicInputs,
-    ]);
+    await viem.assertions.emitWithArgs(
+      panagramContractAsMainUser.write.claimReward([
+        noirProofMainUser100.proof,
+        noirProofMainUser100.publicInputs,
+      ]),
+      panagramContractAsMainUser,
+      "Transfer",
+      [zeroAddress, getAddress(mainUser.account.address), 0n],
+    );
+
+    await viem.assertions.emitWithArgs(
+      panagramContractAsMainUser.write.claimReward([
+        noirProofMainUser101.proof,
+        noirProofMainUser101.publicInputs,
+      ]),
+      panagramContractAsMainUser,
+      "Transfer",
+      [zeroAddress, getAddress(mainUser.account.address), 1n],
+    );
+
+    assert.equal(
+      await panagramContractAsMainUser.read.balanceOf([
+        mainUser.account.address,
+      ]),
+      BigInt(2),
+    );
+
+    await viem.assertions.revertWithCustomError(
+      panagramContractAsMainUser.write.claimReward([
+        noirProofMainUser101.proof,
+        noirProofMainUser101.publicInputs,
+      ]),
+      panagramContractAsMainUser,
+      "Panagram__NullfierAlreadyUsed",
+    );
+  });
+
+  it("should revert when the proof belongs to another wallet", async () => {
+    const { mainUser, panagramContract } = await networkHelpers.loadFixture(
+      deployPanagramModuleFixture,
+    );
+
+    const panagramContractAsMainUser = await viem.getContractAt(
+      "Panagram",
+      panagramContract.address,
+      { client: { wallet: mainUser } },
+    );
+
+    await viem.assertions.revertWithCustomError(
+      panagramContractAsMainUser.write.claimReward([
+        noirProofOtherUser200.proof,
+        noirProofOtherUser200.publicInputs,
+      ]),
+      panagramContractAsMainUser,
+      "Panagram__ProofNotBoundToClaimer",
+    );
   });
 });
